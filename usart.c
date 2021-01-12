@@ -148,6 +148,7 @@ int usart_recv(int fd,char *recv_buf,int data_len)
 		return len;
 	}else{
 		printf("cannot recvive data\r\n");
+		return -1;
 	}
 }
 

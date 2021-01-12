@@ -398,6 +398,51 @@ void *while_efficdata(void *p)
     }
 }
 
+void *while_serial_read(void* p) {
+    // 初始化串口
+    int ret = 0;
+    char *port = "/dev/ttyFIQ0";
+    int fd = usart_open(fd,port);
+    usart_set(fd,115200,0,8,1,'N');
+    printf("串口初始化完成\n");
+
+    // int usart_recv(int fd,char *recv_buf,int data_len)
+    char temp_byte = 0;
+    char buf[10] = {0};
+    int index = 0;
+    int hasStarted = 0; // 是否开始进行接收，0表示不接收
+    while(1) {
+        ret = usart_recv(fd, &temp_byte, 1); // 一次只读取一个字节
+        if(ret < 0) {
+            printf("read serial failed\n");
+        } else {
+            if(temp_byte == 0xDD) { // 说明后面的数据使我们需要的
+                index = 0;
+                hasStarted = 1; // 开始接收剩余的5个字节
+                buf[index++] = temp_byte;
+            }
+            if(hasStarted == 1) {
+                buf[index++] = temp_byte;
+            }
+            if(index >= 6) { // 现在一帧数据接收完毕，开始进行解析
+                // 进行数据校验，先忽略
+
+                // 拼接温度的两个字节
+                int temp = buf[4]; // 先获取温度的高字节
+                temp = temp << 8;
+                temp = temp | buf[3]; // 与低字节进行合并
+                // 计算实际温度值
+                float real_temp = temp*0.0625;
+                printf("real_temp = %.2f\n", real_temp);
+                printf("Content-type: text/html\n\n");
+                printf("{\"temp_value\":\"%.2f\"}", real_temp);
+            }
+        }
+    }
+
+    usart_close(fd);
+}
+
 int main(int argc, char *argv[])
 {
     unsigned char *pcRecvBuffer = NULL;
@@ -405,7 +450,7 @@ int main(int argc, char *argv[])
     PCMContainer_t record; // 定义录音需要的结构体对象    
     char *devicename = "default"; // 使用系统默认的录音设备
     int res;
-	pthread_t pt;
+	pthread_t pt, thread_serial;
 
     memset(&record,0x0,sizeof(record)); // 初始化清空结构体
     record.channels = DEFAULT_CHANNELS; // 单声道录音
@@ -429,10 +474,11 @@ int main(int argc, char *argv[])
     }
     
     pthread_create(&pt,NULL,while_efficdata,NULL);  // while_efficdata线程函数主要对录音数据进行识别
+    pthread_create(&thread_serial, while_serial_read, NULL); // 处理zigbee数据线程
 	printf("请说命令\n\r");
     while(1) {
-        records(&record); // 此线程主要完成音频数据采集，录音
-        while(1);
+        //records(&record); // 此线程主要完成音频数据采集，录音
+        //while(1);
     }
 
     // 释放分配的系统资源

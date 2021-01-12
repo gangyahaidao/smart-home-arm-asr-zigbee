@@ -338,11 +338,16 @@ void efficdata(char *pdata)
     mutex = 0;
     int16_t *inbuffer = (int16_t*)malloc(record_data_size_g);
 	
-	static char joit_text[1024] = {0};	
-	
 	char *opt[6] = {"2\r\n","3\r\n"};
-	char *open_curtain = "打开窗帘";
-	char *close_curtain = "关闭窗帘";
+	char *open_curtain = "打开灯光";
+	char *close_curtain = "关闭灯光";
+
+    // 打开LED灯操作文件描述符
+    int fd = open("/sys/class/leds/firefly:yellow:user/brightness", O_WRONLY);
+    if(fd < 0) {
+        printf("open failed, fd = %d\n", fd);
+        return -1;
+    }
 	
     memcpy(inbuffer, pdata, record_data_size_g);
     free(pdata); // 及时释放分配的空间
@@ -350,21 +355,31 @@ void efficdata(char *pdata)
 	char *aiui_text = (unsigned char*)malloc(1024);
 	memset(aiui_text,0,1024);
 	
+    // 进行语音识别
     aiui_text = AIUI_Audio2Text(inbuffer, record_data_size_g);
 	
-	strcat(joit_text, aiui_text);
-	if (strlen(joit_text) > 240)
-		memset(joit_text,0x0,1024);
-	
 	if (strstr((char *)aiui_text, open_curtain) != NULL) {
-		printf("执行命令：打开窗帘\n\r");
-		usart(opt[0],3);
-		memset(joit_text,0x0,1024);
+		printf("执行命令：打开灯光\n\r");
+        // 打开灯
+		ret = write(fd, "1", 1); // 写0灯灭，写1灯亮
+        if(ret < 0) {
+            printf("write failed ret = %d\n", ret);
+            return -1;
+        } else {
+            printf("write success, ret = %d\n", ret);
+        }
 	} else if (strstr((char *)aiui_text, close_curtain) != NULL) {
-		printf("执行命令：关闭窗帘\n\r");
-		usart(opt[1],3);
-		memset(joit_text,0x0,1024);
+		printf("执行命令：关闭灯光\n\r");
+		// 关闭灯
+        ret = write(fd, "0", 1); // 写0灯灭，写1灯亮
+        if(ret < 0) {
+            printf("write failed ret = %d\n", ret);
+            return -1;
+        } else {
+            printf("write success, ret = %d\n", ret);
+        }
 	}	
+    close(fd); // 关闭灯光控制文件描述符
     free(aiui_text);
 	free(inbuffer); // 释放空间
 }

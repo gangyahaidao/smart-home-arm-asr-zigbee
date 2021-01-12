@@ -428,9 +428,9 @@ void *while_serial_read(void* p) {
                 // 进行数据校验，先忽略
 
                 // 拼接温度的两个字节
-                int temp = buf[4]; // 先获取温度的高字节
+                int temp = buf[3]; // 先获取温度的高字节
                 temp = temp << 8;
-                temp = temp | buf[3]; // 与低字节进行合并
+                temp = temp | buf[4]; // 与低字节进行合并
                 // 计算实际温度值
                 float real_temp = temp*0.0625;
                 printf("real_temp = %.2f\n", real_temp);

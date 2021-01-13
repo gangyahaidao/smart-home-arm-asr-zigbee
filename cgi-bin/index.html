@@ -1,0 +1,51 @@
+<html>
+    <head>
+        <title>基于ARM的智能家居监控系统</title>
+        <meta charset="UTF-8">
+        <script type="text/javascript">
+        function get_info()
+        {
+            // 用于发起Ajax请求
+            var xmlhttp;
+            if (window.XMLHttpRequest)
+            {
+                //code for IE7+,Firefox,Chrome,Opera,Safari
+                xmlhttp = new XMLHttpRequest();
+            }
+            else
+            {
+                //code for IE6,IE5
+                xmlhttp = new
+                ActiveXObject("Microsoft.XMLHTTP");
+            }
+            xmlhttp.onreadystatechange = function ()
+            {
+                //ajax结果回调函数
+                if (xmlhttp.readyState == 4 && xmlhttp.status== 200)
+                {
+                    //将接收到的字符串存入jsonstr
+                    var jsonstr = xmlhttp.responseText;
+                    console.log("jsonstr = " + jsonstr);
+                    // 将jsonstr转换为json对象 json
+                    var json = JSON.parse(jsonstr);
+                    // 解析json数据，显示在网页上
+                    if (json["temp_value"])
+                    {
+                        document.getElementById("temp_value").innerHTML =
+                        json["temp_value"];
+                    }
+                }
+            }
+            xmlhttp.open("GET", "cgi-bin/ajax3.cgi?get_info",true);
+            xmlhttp.send();
+        }
+        </script>
+    </head>
+        <body>
+            <h3>后台CGI如何把数据返回到网页的指定控件显示:</h3>
+            <input type="submit" value="获取温度" onclick="get_info()"/>
+            <form id="form1">
+                <p>室内温度：<span id="temp_value"></span> &#8451;</p>
+            </form>
+        </body>
+</html>

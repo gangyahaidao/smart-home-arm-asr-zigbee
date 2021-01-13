@@ -1,183 +1,154 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <termios.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <sys/ioctl.h>
+#include "usart.h"
 
+int speed_arr[] = {B115200, B38400, B19200, B9600, B4800, B2400, B1200, B300,
+	    			B38400, B19200, B9600, B4800, B2400, B1200, B300, };
+int name_arr[] = {115200, 38400,  19200,  9600,  4800,  2400,  1200,  300,
+	    			38400,  19200,  9600, 4800, 2400, 1200,  300, };
 
-int usart_open(int fd,char *port)
+/**
+	fd is the open tty ;speed is the rate
+*/
+void set_speed(int fd, int speed)
 {
-	//printf("port is %s\n", port);
-	fd = open(port,O_RDWR|O_NOCTTY|O_NDELAY);
-	if (fd < 0)
-	{
-		//printf("Can't Open Serial Port\r\n");
-		return -1;
-	}
-	if (fcntl(fd,F_SETFL,0) < 0)
-	{
-		//printf("fcntl failed\r\n");
-		return -1;
-	}else{
-		//printf("fcntl = %d\r\n", fcntl(fd,F_SETFL,0));
-	}
-	return fd;
-}
+  int   i;
+  int   status;
+  struct termios   Opt;
+  tcgetattr(fd, &Opt);
+  for ( i= 0;  i < sizeof(speed_arr) / sizeof(int);  i++)
+  {
+   	if  (speed == name_arr[i])
+   	{
+   	    tcflush(fd, TCIOFLUSH);
+    	cfsetispeed(&Opt, speed_arr[i]);
+    	cfsetospeed(&Opt, speed_arr[i]);
+    	status = tcsetattr(fd, TCSANOW, &Opt);
+    	if  (status != 0)
+            perror("tcsetattr fd1");
+     	return;
+    }
+    tcflush(fd,TCIOFLUSH);
+  }
+}	    
 
-void usart_close(int fd)
+/**
+	set data bit , stop bit and checksum bit 
+*/
+int set_Parity(int fd,int databits,int stopbits,int parity)
 {
-	close(fd);
-}
-
-int usart_set(int fd,int speed,int flow_ctrl,int databits,int stopbits,int parity)
-{
-	int i;
-	int status;
-	int speed_arr[] = {B115200,B19200,B9600,B4800,B2400,B1200,B300};
-	int name_arr[] = {115200,19200,9600,4800,2400,1200,300};
-
-	struct termios newtio;
-
-	if (tcgetattr(fd,&newtio) != 0)
-	{
-		//printf("SetupSerial 1\r\n");
-		return -1;
-	}
-
-	for (i = 0; i < sizeof(speed_arr)/sizeof(int); ++i)
-	{
-		if (speed == name_arr[i])
-		{
-			cfsetispeed(&newtio,speed_arr[i]);
-			cfsetospeed(&newtio,speed_arr[i]);
-		}
-	}
-	newtio.c_cflag |= CLOCAL;
-	newtio.c_cflag |= CREAD;
-
-	switch(flow_ctrl)
-	{
-		case 0:newtio.c_cflag &= ~CRTSCTS;break;
-		case 1:newtio.c_cflag |= CRTSCTS;break;
-		case 2:newtio.c_cflag |= IXON | IXOFF | IXANY;break;
+	struct termios options, save_termios;;
+ 	if( tcgetattr( fd,&options)  !=  0)
+  	{
+ 	 	perror("SetupSerial 1");
+ 	 	return(FALSE);
+  	}
+	save_termios = options;
+ 	options.c_cflag &= ~(CSIZE | PARENB);
+	options.c_iflag &= ~(ICRNL | IXON | BRKINT | INPCK | ISTRIP);
+	options.c_lflag &= ~(ECHO | ICANON | IEXTEN | ISIG);
+	options.c_oflag &= ~(OPOST);
+  	switch (databits)
+  	{
+  		case 7:
+  			options.c_cflag |= CS7;
+  			break;
+  		case 8:
+			options.c_cflag |= CS8;
+			break;
 		default:
-			//printf("unsuported flow_ctrl\r\n");
-			return -1;
+			fprintf(stderr,"Unsupported data size\n");
+			return (FALSE);
 	}
-
-	newtio.c_cflag &= ~CSIZE;
-	switch(databits)
-	{
-		case 5:newtio.c_cflag |= CS5;break;
-		case 6:newtio.c_cflag |= CS6;break;
-		case 7:newtio.c_cflag |= CS7;break;
-		case 8:newtio.c_cflag |= CS8;break;
-		default:
-			//printf("unsuported data size\r\n");
-			return -1;
-	}
-
-	switch(parity)
-	{
-		case 'n':
-		case 'N':newtio.c_cflag &= ~PARENB;
-			newtio.c_iflag |= ~INPCK;
+	
+   	switch (parity)
+  	{
+ 	 	case 'n':
+		case 'N':
+			options.c_cflag &= ~PARENB;   	//Clear parity enable 
+			options.c_iflag &= ~INPCK;     	// Enable parity checking
 			break;
 		case 'o':
-		case 'O':newtio.c_cflag |= (PARODD | PARENB);
-			newtio.c_iflag |= INPCK;
+		case 'O':
+			options.c_cflag |= (PARODD | PARENB); //set as odd check 
+			options.c_iflag |= INPCK;             		//Disnable parity check
 			break;
 		case 'e':
-		case 'E':newtio.c_cflag |= PARENB;
-			newtio.c_cflag &= ~PARODD;
-			newtio.c_iflag |= INPCK;
-			break;
-		case 's':
-		case 'S':newtio.c_cflag &= ~PARENB;
-			newtio.c_cflag &= ~CSTOPB;
+		case 'E':
+			options.c_cflag |= PARENB;    		//Enable parity 
+			options.c_cflag &= ~PARODD; 
+			options.c_iflag |= INPCK;      		//Disnable parity checking
+			break;		
+		case 'S':
+		case 's':  //as no parity
+			options.c_cflag &= ~PARENB;
+			options.c_cflag &= ~CSTOPB;
 			break;
 		default:
-			//printf("unsuported parity\r\n");
-			return -1;
-	}
+			fprintf(stderr,"Unsupported parity\n");
+			return (FALSE);
+		}
 
-	switch(stopbits)
-	{
-		case 1:newtio.c_cflag &= ~CSTOPB;break;
-		case 2:newtio.c_cflag |= CSTOPB;break;
+ 	 switch (stopbits)
+  	{
+  		case 1:
+  			options.c_cflag &= ~CSTOPB;
+			break;
+		case 2:
+			options.c_cflag |= CSTOPB;
+			break;
 		default:
-			//printf("unsuported stop bits\r\n");
-			return -1;
+			fprintf(stderr,"Unsupported stop bits\n");
+			return (FALSE);
 	}
-	newtio.c_oflag &= ~OPOST;
-	newtio.c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG);
-	newtio.c_cc[VTIME] = 1;
-	newtio.c_cc[VMIN] = 1;
+  	//Set input parity option
+  	if (parity != 'n')
+  		options.c_iflag |= INPCK;
+    options.c_cc[VTIME] = 15; // seconds/10,终端会每隔1.5秒查询一下终端是否有数据，这样CPU就有时间去做其他事情
+    options.c_cc[VMIN] = 0;//读取的字节数目
 
-	tcflush(fd,TCIFLUSH);
-
-	if (tcsetattr(fd,TCSANOW,&newtio) != 0)
+  	tcflush(fd,TCIFLUSH); 		// Update the options and do it NOW
+  	if (tcsetattr(fd,TCSANOW,&options) != 0)
+  	{
+  		perror("SetupSerial 3");
+		return (FALSE);
+	}
+  	return (TRUE);
+}			
+/**
+	send n bytes data
+*/
+int writen(int fd, uint8_t *buf, size_t size)
+{
+	int total = 0, n;
+	while(total < size)
 	{
-		//printf("com set error\r\n");
-		return -1;
+		if((n = write(fd, buf + total, size - total)) < 0)
+		{
+			
+			fprintf(stderr, "[%s:%d]read failured:%s\n", __FILE__, __LINE__, strerror(errno));
+			exit(-1);
+		}
+		total += n;
 	}
-	return 1;
+	//printf("write total n = %d\n", total);
+	return total;
 }
 
-int usart_send(int fd,char *send_buf,int data_len)
+/**
+	read n data
+*/
+int readn(int fd, unsigned char *buf, size_t size)
 {
-	int len = 0;
-	len = write(fd,send_buf,data_len);
-	if (len == data_len)
+	int total = 0, n;
+	while(total < size)
 	{
-		//printf("send data is %s\r\n", send_buf);
-		//printf("send data success\n");
-		return len;
-	}else{
-		tcflush(fd,TCOFLUSH);
-		return -1;
+		if((n = read(fd, buf + total, size - total)) < 0)
+		{
+			
+			fprintf(stderr, "[%s:%d]read failured:%s\n", __FILE__, __LINE__, strerror(errno));
+			exit(-1);
+		}
+		total += n;
+		//printf("read n = %d\n", n);
 	}
+	return total;
 }
-
-int usart_recv(int fd,char *recv_buf,int data_len)
-{
-	int len = 0;
-	len = read(fd,recv_buf,data_len);
-	if (len > 0)
-	{
-		//printf("recv data is %s\r\n", recv_buf);
-		return len;
-	}else{
-		//printf("cannot recvive data\r\n");
-		return -1;
-	}
-}
-
-void usart(char *sendbuf,int length)
-{
-	int fd;
-	char *port = "/dev/ttySAC4";
-	fd = usart_open(fd,port);
-	usart_set(fd,115200,0,8,1,'N');
-	usart_send(fd,sendbuf,length);
-	usart_close(fd);
-}
-
-/*int main(int argc,char *argv[])
-{
-	int fd,res,i = 8;
-	char *opt[8] = {"#L01,O!\r\n","#L01,C!\r\n","#L02,O!\r\n","#L02,C!\r\n","#L03,O!\r\n","#L03,C!\r\n","#L04,O!\r\n","#L04,C!\r\n"};
-	char *port = "/dev/ttys5";
-	fd = uart_open(fd,port);
-	uart_set(fd,115200,0,8,1,'N');
-	while(i--)
-	{
-		uart_send(fd,opt[i],12);
-	}
-	uart_close(fd);
-}*/

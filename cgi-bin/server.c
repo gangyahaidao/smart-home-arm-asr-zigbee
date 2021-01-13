@@ -8,8 +8,14 @@
 int main(void)
 {
 	printf("Content-type: text/html\n\n");
-	float curr_temp = 23.1;
-	printf("{\"temp_value\":\"%.2f\"}", curr_temp);
+	char readBuf[10] = {0};
+
+	FILE *fp = NULL;
+	fp = fopen("./test.txt", "r");
+	fgets(readBuf, 10, fp);
+
+	printf("{\"temp_value\":\"%s\"}", readBuf);
+	fclose(fp);
     
 	return 0;
 }

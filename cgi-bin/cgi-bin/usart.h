@@ -1,11 +1,26 @@
-#ifndef USART_H
-#define USART_H
+#ifndef SERIAL_UTILS_H
+#define SERIAL_UTILS_H
 
-int usart_open(int fd,char *port);
-void usart_close(int fd);
-int usart_set(int fd,int speed,int flow_ctrl,int databits,int stopbits,int parity);
-int usart_send(int fd,char *send_buf,int data_len);
-int usart_recv(int fd,char *recv_buf,int data_len);
-void usart(char *sendbuf,int length);
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <sys/types.h> 
+#include <sys/stat.h> 
+#include <fcntl.h>
+#include <termios.h> 
+#include <errno.h>
+#include<linux/agpgart.h>
+#include<sys/times.h>
+#include<sys/select.h>
+#include<stdint.h>
+
+void set_speed(int fd, int speed);
+
+int set_Parity(int fd,int databits,int stopbits,int parity);
+
+int writen(int fd, uint8_t *buf, size_t size);
+
+int readn(int fd, unsigned char *buf, size_t size);
 
 #endif

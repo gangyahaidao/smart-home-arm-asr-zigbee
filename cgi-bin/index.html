@@ -6,7 +6,6 @@
         function get_info()
         {
             // 用于发起Ajax请求
-            alert("点击请求按钮");
             var xmlhttp;
             if (window.XMLHttpRequest)
             {
@@ -21,7 +20,6 @@
             }
             xmlhttp.onreadystatechange = function ()
             {
-                alert("ajax回调函数");
                 //ajax结果回调函数
                 if (xmlhttp.readyState == 4 && xmlhttp.status== 200)
                 {
@@ -40,7 +38,13 @@
             }
             xmlhttp.open("GET", "cgi-bin/ajax3.cgi?get_info",true);
             xmlhttp.send();
-            alert("发送请求");
+        }
+        
+        window.onload = function() { // 每3秒刷新一次页面温度数据
+            self.setInterval(function() {
+                console.log("read temp value");
+                get_info()
+            }, 3000);            
         }
         </script>
     </head>

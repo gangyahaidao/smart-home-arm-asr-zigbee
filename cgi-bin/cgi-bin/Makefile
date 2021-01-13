@@ -8,9 +8,10 @@ LOCAL_PATH = -I/usr/lib -L/usr/local/lib
 
 CFLAGS=-g
 LDFLAGS=
-TARGET=ajax3.cgi
+TARGET=read_serial
 $(TARGET):$(OBJS)
 	$(CC) $(OBJS) $(LOCAL_PATH)  -o $@ $(LDFLAGS) $(LIBS)
+	$(CC) ../server.c -o ./ajax3.cgi
 
 %.o:%.c
 	$(CC)  $(LOCAL_PATH) -c $< -o $@ $(CFLAGS) $(LIBS)

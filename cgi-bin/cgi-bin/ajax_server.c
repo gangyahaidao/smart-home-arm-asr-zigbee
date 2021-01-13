@@ -44,7 +44,6 @@ int main(void)
                 float real_temp = temp*0.0625;
                 
                 printf("Content-type: text/html\n\n");
-                float curr_temp = 23.1;
                 printf("{\"temp_value\":\"%.2f\"}", real_temp);
                 break; // 接收完一帧数据之后退出
             }

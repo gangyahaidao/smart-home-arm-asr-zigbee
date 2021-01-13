@@ -39,12 +39,12 @@
             xmlhttp.open("GET", "cgi-bin/ajax3.cgi?get_info",true);
             xmlhttp.send();
         }
-        
+
         window.onload = function() { // 每3秒刷新一次页面温度数据
             self.setInterval(function() {
                 console.log("read temp value");
                 get_info()
-            }, 3000);            
+            }, 3000);
         }
         </script>
     </head>

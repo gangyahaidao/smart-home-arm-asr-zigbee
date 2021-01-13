@@ -474,11 +474,11 @@ int main(int argc, char *argv[])
     }
     
     pthread_create(&pt,NULL,while_efficdata,NULL);  // while_efficdata线程函数主要对录音数据进行识别
-    pthread_create(&thread_serial, NULL, while_serial_read, NULL); // 处理zigbee数据线程
+    // pthread_create(&thread_serial, NULL, while_serial_read, NULL); // 处理zigbee数据线程
 	printf("请说命令\n\r");
     while(1) {
-        //records(&record); // 此线程主要完成音频数据采集，录音
-        //while(1);
+        records(&record); // 此线程主要完成音频数据采集，录音
+        while(1);
     }
 
     // 释放分配的系统资源

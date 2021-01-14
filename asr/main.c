@@ -361,7 +361,7 @@ void efficdata(char *pdata)
 	if (strstr((char *)aiui_text, open_curtain) != NULL) {
 		printf("执行命令：打开灯光\n\r");
         // 打开灯
-		ret = write(fd, "1", 1); // 写0灯灭，写1灯亮
+		int ret = write(fd, "1", 1); // 写0灯灭，写1灯亮
         if(ret < 0) {
             printf("write failed ret = %d\n", ret);
             return -1;
@@ -371,7 +371,7 @@ void efficdata(char *pdata)
 	} else if (strstr((char *)aiui_text, close_curtain) != NULL) {
 		printf("执行命令：关闭灯光\n\r");
 		// 关闭灯
-        ret = write(fd, "0", 1); // 写0灯灭，写1灯亮
+        int ret = write(fd, "0", 1); // 写0灯灭，写1灯亮
         if(ret < 0) {
             printf("write failed ret = %d\n", ret);
             return -1;

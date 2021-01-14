@@ -393,7 +393,7 @@ void *while_efficdata(void *p)
             continue;
         }else{
             efficdata(prepare);
-            break;
+            //break;
         }        
     }
 }
@@ -478,7 +478,7 @@ int main(int argc, char *argv[])
 	printf("请说命令\n\r");
     while(1) {
         records(&record); // 此线程主要完成音频数据采集，录音
-        while(1);
+        sleep(1);
     }
 
     // 释放分配的系统资源
